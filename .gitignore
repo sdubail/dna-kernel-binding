@@ -1,0 +1,8 @@
+.vscode/
+.mypy_cache/
+.pytest_cache/
+dna_kernel_binding.egg-info/
+**/__pycache__
+**/plots
+**/results
+.DS_Store
