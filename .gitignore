@@ -2,6 +2,7 @@
 .mypy_cache/
 .pytest_cache/
 dna_kernel_binding.egg-info/
+dna_kernel_binding/data/data_challenge
 **/__pycache__
 **/plots
 **/results
