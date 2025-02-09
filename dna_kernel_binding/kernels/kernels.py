@@ -13,44 +13,54 @@ import pandas as pd
 class BaseKernel(ABC):
     """
     Abstract base class for all kernel functions.
-
-    This class defines the interface that all kernel implementations must follow.
-    It provides common functionality like Gram matrix computation while letting
-    specific kernels define their own similarity measures.
+    Provides common functionality like Gram matrix computation and centering,
+    while letting specific kernels define their own similarity measures.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, center: bool = True) -> None:
+        """
+        Initialize the kernel.
+
+        Args:
+            center: Whether to center the kernel matrix in feature space
+        """
         self.is_preprocessed = False
         self.preprocessed_data = None
+        self.center = center
 
-    @abstractmethod
-    def preprocess_data(self, X: pd.DataFrame | list[str]) -> None:
+    def _center_gram_matrix(self, K: np.ndarray, is_train: bool = True) -> np.ndarray:
         """
-        Preprocess the input data for efficient kernel computation.
-        Each kernel implementation should define its own preprocessing steps.
+        Center the Gram matrix in feature space using the formula:
+        K^c = (I - U)K(I - U)
+        where U is a matrix with all entries = 1/n
 
         Args:
-            X: Input data to preprocess
-        """
-        pass
-
-    @abstractmethod
-    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray) -> float:
-        """
-        Compute the kernel value between two instances.
-        Must be implemented by each specific kernel.
-
-        Args:
-            x1: First instance
-            x2: Second instance
+            K: Gram matrix to center
+            is_train: Whether this is training data (if False, use stored U)
 
         Returns:
-            Kernel value (similarity) between x1 and x2
+            Centered Gram matrix
         """
-        pass
+        if not self.center:
+            return K
+
+        n_samples = K.shape[0]
+
+        U = np.ones((n_samples, n_samples)) / n_samples
+
+        # Identity matrix minus U
+        I_minus_U = np.eye(n_samples) - U
+
+        # Compute centered matrix using the formula from the slides
+        K_centered = I_minus_U @ K @ I_minus_U
+
+        return K_centered
 
     def compute_gram_matrix(
-        self, X1: pd.DataFrame | list[str], X2: pd.DataFrame | list[str] | None = None
+        self,
+        X1: pd.DataFrame | list[str],
+        X2: pd.DataFrame | list[str] | None = None,
+        center: bool | None = None,
     ) -> np.ndarray:
         """
         Compute the Gram matrix between X1 and X2.
@@ -59,6 +69,7 @@ class BaseKernel(ABC):
         Args:
             X1: First set of instances
             X2: Optional second set of instances
+            center: Whether to center the kernel matrix. If None, use the instance setting.
 
         Returns:
             Gram matrix of kernel values
@@ -79,7 +90,28 @@ class BaseKernel(ABC):
             for j in range(n2):
                 K[i, j] = self._compute_similarity(X1.iloc[i], X2.iloc[j])
 
+        # Center the kernel matrix if requested
+        should_center = self.center if center is None else center
+        if should_center:
+            K = self._center_gram_matrix(K, is_train=(X2 is X1))
+
         return K
+
+    @abstractmethod
+    def preprocess_data(self, X: pd.DataFrame | list[str]) -> None:
+        """
+        Preprocess the input data for efficient kernel computation.
+        Each kernel implementation should define its own preprocessing steps.
+        """
+        pass
+
+    @abstractmethod
+    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray) -> float:
+        """
+        Compute the kernel value between two instances.
+        Must be implemented by each specific kernel.
+        """
+        pass
 
 
 class SpectrumKernel(BaseKernel):

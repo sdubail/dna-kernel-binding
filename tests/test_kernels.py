@@ -85,10 +85,10 @@ def test_gram_matrix_computation(
 def test_gram_matrix_different_sets(spectrum_kernel: SpectrumKernel) -> None:
     """Test Gram matrix computation between different sets."""
     df1 = pd.DataFrame(["ACGT", "AAAA"], columns=["sequence"])
-    df2 = pd.DataFrame(["ACGT"], columns=["sequence"])
+    df2 = pd.DataFrame(["ACTT", "AGGA"], columns=["sequence"])
 
     K = spectrum_kernel.compute_gram_matrix(df1, df2)
-    assert K.shape == (2, 1)
+    assert K.shape == (2, 2)
 
 
 def test_error_no_name(spectrum_kernel: SpectrumKernel) -> None:
