@@ -5,6 +5,10 @@ Test module for kernel implementations.
 import numpy as np
 import pandas as pd
 import pytest
+import sys
+import os
+# Add project root to sys.path
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 from dna_kernel_binding.kernels.kernels import SpectrumKernel
 

@@ -6,6 +6,10 @@ Tests basic functionality, edge cases, and numerical stability.
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+import sys
+import os
+# Add project root to sys.path
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 from dna_kernel_binding.models.svm import KernelSVM
 
