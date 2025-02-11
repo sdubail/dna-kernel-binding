@@ -51,7 +51,7 @@ class DNADataLoader:
         if not x_path.exists():
             raise FileNotFoundError(f"Data file {x_path} does not exist")
 
-        X = pd.read_csv(x_path, header=None)
+        X = pd.read_csv(x_path, header=0)
 
         # For test data, return only X
         if split == "test":
