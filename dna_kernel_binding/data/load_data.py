@@ -141,3 +141,17 @@ class DNADataLoader:
                 raise FileNotFoundError(f"Missing required file: {file}")
 
         return True
+    
+    def get_train_and_test_data(self) -> tuple[pd.DataFrame, pd.Series] | pd.DataFrame:
+        """
+        Load the training and test data from the data directory.
+        Args:
+            data_dir: Path to the data directory.
+        Returns:
+            X_train: List of training data sequences.
+            Y_train: List of training data labels.
+            X_test: List of test data sequences.
+        """
+        X_train, Y_train = self.load_all_datasets(split="train")
+        X_test = self.load_all_datasets(split="test")
+        return X_train, Y_train, X_test
