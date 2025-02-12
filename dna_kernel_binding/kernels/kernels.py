@@ -4,7 +4,7 @@ Module implementing kernel functions for DNA sequence analysis.
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -122,14 +122,14 @@ class SpectrumKernel(BaseKernel):
     It uses efficient pre-indexing of k-mers for faster computation.
     """
 
-    def __init__(self, k: int):
+    def __init__(self, k: int, center: bool = True) -> None:
         """
         Initialize the spectrum kernel.
 
         Args:
             k: Length of k-mers to consider
         """
-        super().__init__()
+        super().__init__(center=center)
         self.k = k
         self.kmer_indices = {}  # Maps sequences to their k-mer count dictionaries
         self.kmer_test_indices = {}
@@ -158,7 +158,7 @@ class SpectrumKernel(BaseKernel):
             X: Input sequences
         """
         # Convert to list of strings if DataFrame
-        sequences = X.iloc[:, 0].tolist() if isinstance(X, pd.DataFrame) else X
+        sequences = X.loc[:, 'seq'].tolist() if isinstance(X, pd.DataFrame) else X
 
         # Create k-mer indices for each sequence
         for idx, seq in enumerate(sequences):
