@@ -28,7 +28,7 @@ class BaseKernel(ABC):
         self.preprocessed_data = None
         self.center = center
 
-    def _center_gram_matrix(self, K: np.ndarray, is_train: bool = True) -> np.ndarray:
+    def _center_gram_matrix(self, K: np.ndarray, is_train: bool = True, support_vectors: np.ndarray=None, K_train:np.ndarray=None) -> np.ndarray:
         """
         Center the Gram matrix in feature space using the formula:
         K^c = (I - U)K(I - U)
@@ -36,31 +36,84 @@ class BaseKernel(ABC):
 
         Args:
             K: Gram matrix to center
-            is_train: Whether this is training data (if False, use stored U)
+            is_train: Whether this is training data
+                if False, we adapt the formula using:
+                    An m×m identity matrix on the left (for m test points)
+                    An n×n identity matrix on the right (for n training points)
+                    So the formula becomes: K_test_centered = (I_m - 1_m1_nᵀ/m)K_test(I_n - 1_n1_nᵀ/n)
+                    
 
         Returns:
             Centered Gram matrix
+
         """
         if not self.center:
             return K
 
-        n_samples = K.shape[0]
+        
+        if is_train:
+            n_samples = K.shape[0]
+            # Compute U matrix for training data
+            U= np.ones((n_samples, n_samples)) / n_samples
+            
+            # Identity matrix minus U
+            I_minus_U = np.eye(n_samples) - U
+        
+            # Compute centered matrix using the formula from the slides
+            K_centered = I_minus_U @ K @ I_minus_U
+            
+            return K_centered
+            
+        else:
+            #TODO: Check if this is correct
 
-        U = np.ones((n_samples, n_samples)) / n_samples
-
-        # Identity matrix minus U
-        I_minus_U = np.eye(n_samples) - U
-
-        # Compute centered matrix using the formula from the slides
-        K_centered = I_minus_U @ K @ I_minus_U
-
-        return K_centered
+            # Here K = K_test_sv
+            n_train =  K_train.shape[0]
+            n_test = K.shape[1]
+            n_sv = support_vectors.sum().item()
+            
+            # Compute required statistics from full training kernel
+            mean_full =  K_train.mean()
+            mean_cols_sv = K_train[:, support_vectors].mean(axis=0)
+            mean_rows_train = K_train.mean(axis=1)
+            
+            # Center test kernel using these statistics
+            K_test_centered = K - \
+                            np.outer(np.ones(n_test), mean_cols_sv).T - \
+                            np.outer(mean_rows_train[support_vectors], np.ones(n_test)) + \
+                            mean_full
+                            
+            
+            return K_test_centered   
+        
+            # TODO: Remove when the above is correct
+            # 1st alternative  
+            # n_train, n_test = K.shape
+            # # Compute U matrix for test data
+            # U_test = np.ones((n_test, n_test)) / n_test
+            # U_train = np.ones((n_train, n_train)) / n_train
+            # # Identity matrices minus U
+            # I_m_minus_U_test = np.eye(n_test) - U_test
+            # I_n_minus_U_train = np.eye(n_train) - U_train
+            
+            # # Compute centered matrix using the formula
+            # K_centered = I_n_minus_U_train @ K @ I_m_minus_U_test
+            
+            # TODO: Remove when the above is correct
+            # 2nd alternative    
+            # n_train, n_test = K.shape
+            # U_test = np.ones((n_test, n_test)) / n_train
+            # K_centered = K - U_test @ self.K_train
+             
 
     def compute_gram_matrix(
         self,
         X1: pd.DataFrame | list[str],
         X2: pd.DataFrame | list[str] | None = None,
         center: bool | None = None,
+        x2_type: Literal["train", "test", "validation"] = "train",
+        support_vectors: np.ndarray | None = None,
+        K_train: np.ndarray | None = None
     ) -> np.ndarray:
         """
         Compute the Gram matrix between X1 and X2.
@@ -76,9 +129,15 @@ class BaseKernel(ABC):
         """
         if not self.is_preprocessed:
             self.preprocess_data(X1)
-            if X2 is not None:
-                self.preprocess_data(X2)
+            if X2 =='train':
+                self.preprocess_data(X2, X_type=x2_type)
 
+        # make sure to preprocess the test data
+        if x2_type == 'test':
+            self.preprocess_data(X2, X_type=x2_type) 
+        
+        if support_vectors is not None:
+            X1 = X1[support_vectors]
         # If X2 is None, we're computing K(X1, X1)
         if X2 is None:
             X2 = X1
@@ -93,7 +152,8 @@ class BaseKernel(ABC):
         # Center the kernel matrix if requested
         should_center = self.center if center is None else center
         if should_center:
-            K = self._center_gram_matrix(K, is_train=(X2 is X1))
+            is_train = x2_type == "train"
+            K = self._center_gram_matrix(K, is_train, support_vectors, K_train)
 
         return K
 
