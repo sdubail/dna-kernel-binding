@@ -88,7 +88,7 @@ class BaseKernel(ABC):
 
         for i in range(n1):
             for j in range(n2):
-                K[i, j] = self._compute_similarity(X1.iloc[i], X2.iloc[j])
+                K[i, j] = self._compute_similarity(X1.iloc[i], X2.iloc[j], x2_type=x2_type)
 
         # Center the kernel matrix if requested
         should_center = self.center if center is None else center
@@ -106,7 +106,7 @@ class BaseKernel(ABC):
         pass
 
     @abstractmethod
-    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray) -> float:
+    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray, x2_type: Literal["train", "test"]) -> float:
         """
         Compute the kernel value between two instances.
         Must be implemented by each specific kernel.
@@ -132,6 +132,7 @@ class SpectrumKernel(BaseKernel):
         super().__init__()
         self.k = k
         self.kmer_indices = {}  # Maps sequences to their k-mer count dictionaries
+        self.kmer_test_indices = {}
 
     def _extract_kmers(self, sequence: str) -> dict[str, int]:
         """
@@ -149,7 +150,7 @@ class SpectrumKernel(BaseKernel):
             counts[kmer] += 1
         return dict(counts)
 
-    def preprocess_data(self, X: pd.DataFrame | list[str]) -> None:
+    def preprocess_data(self, X: pd.DataFrame | list[str], X_type: Literal["train", "test"]="train") -> None:
         """
         Preprocess sequences by computing their k-mer count dictionaries.
 
@@ -161,11 +162,13 @@ class SpectrumKernel(BaseKernel):
 
         # Create k-mer indices for each sequence
         for idx, seq in enumerate(sequences):
-            self.kmer_indices[idx] = self._extract_kmers(seq)
-
+            if X_type == "train":
+                self.kmer_indices[idx] = self._extract_kmers(seq)
+            else:
+                self.kmer_test_indices[idx] = self._extract_kmers(seq)
         self.is_preprocessed = True
 
-    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray) -> float:
+    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray, x2_type: Literal["train", "test", "validation"]) -> float:
         """
         Compute the spectrum kernel value between two sequences.
 
@@ -186,7 +189,10 @@ class SpectrumKernel(BaseKernel):
 
         # Get their k-mer count dictionaries
         kmers1 = self.kmer_indices[idx1]
-        kmers2 = self.kmer_indices[idx2]
+        if (x2_type == "train") | (x2_type == "validation"):
+            kmers2 = self.kmer_indices[idx2]
+        else:
+            kmers2 = self.kmer_test_indices[idx2]
 
         # Compute dot product of k-mer counts
         similarity = 0.0
