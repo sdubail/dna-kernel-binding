@@ -108,12 +108,11 @@ def test_gram_matrix_different_sets(spectrum_kernel: SpectrumKernel) -> None:
         df_test,
         center=True,
         x2_type="test",
-        support_vectors=support_vectors,
         K_train=K_train,
     )
 
     # Check dimensions
-    assert K_test.shape == (2, 2)  # Only using 2 support vectors
+    assert K_test.shape == (4, 2)
 
 
 def test_error_no_name(spectrum_kernel: SpectrumKernel) -> None:

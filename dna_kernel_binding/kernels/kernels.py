@@ -32,7 +32,6 @@ class BaseKernel(ABC):
         self,
         K: np.ndarray,
         is_train: bool = True,
-        support_vectors: np.ndarray = None,
         K_train: np.ndarray = None,
     ) -> np.ndarray:
         """
@@ -70,52 +69,20 @@ class BaseKernel(ABC):
             return K_centered
 
         else:
-            # TODO: REPLACE
-            # K_centered = (
-            #     K
-            #     - U_test @ self.K_train_uncentered
-            #     - K @ U_train
-            #     + U_test @ self.K_train_uncentered @ U_train
-            # )
-
-            # Here K = K_test_sv
             n_train = K_train.shape[0]
             n_test = K.shape[1]
-            n_sv = support_vectors.sum().item()
 
-            # Compute required statistics from full training kernel
-            mean_full = K_train.mean()
-            mean_cols_sv = K_train[:, support_vectors].mean(axis=0)
-            mean_rows_train = K_train.mean(axis=1)
+            U_test = np.ones((n_train, n_test)) / n_train
+            U_train = np.ones((n_train, n_train)) / n_train
 
-            # Center test kernel using these statistics
-            K_test_centered = (
-                K
-                - np.outer(np.ones(n_test), mean_cols_sv).T
-                - np.outer(mean_rows_train[support_vectors], np.ones(n_test))
-                + mean_full
+            # Use the uncentered training matrix for test data centering
+            K_centered = (
+                K - (K_train @ U_test) - (U_train @ K) + (U_train @ K_train @ U_test)
             )
+            # and not -> K - U_test @ K_train - K @ U_train + U_test @ K_train @ U_train
+            # because we still have K_test in shape (n_train, n_test) - we transpose it later
 
-            return K_test_centered
-
-            # TODO: Remove when the above is correct
-            # 1st alternative
-            # n_train, n_test = K.shape
-            # # Compute U matrix for test data
-            # U_test = np.ones((n_test, n_test)) / n_test
-            # U_train = np.ones((n_train, n_train)) / n_train
-            # # Identity matrices minus U
-            # I_m_minus_U_test = np.eye(n_test) - U_test
-            # I_n_minus_U_train = np.eye(n_train) - U_train
-
-            # # Compute centered matrix using the formula
-            # K_centered = I_n_minus_U_train @ K @ I_m_minus_U_test
-
-            # TODO: Remove when the above is correct
-            # 2nd alternative
-            # n_train, n_test = K.shape
-            # U_test = np.ones((n_test, n_test)) / n_train
-            # K_centered = K - U_test @ self.K_train
+            return K_centered
 
     def compute_gram_matrix(
         self,
@@ -123,7 +90,6 @@ class BaseKernel(ABC):
         X2: pd.DataFrame | list[str] | None = None,
         center: bool | None = None,
         x2_type: Literal["train", "test", "validation"] = "train",
-        support_vectors: np.ndarray | None = None,
         K_train: np.ndarray | None = None,
     ) -> np.ndarray:
         """
@@ -147,8 +113,8 @@ class BaseKernel(ABC):
         if x2_type == "test":
             self.preprocess_data(X2, X_type=x2_type)
 
-        if support_vectors is not None:
-            X1 = X1[support_vectors]
+        # if support_vectors is not None: we kill this - we don't use that anymore
+        #     X1 = X1[support_vectors]
         # If X2 is None, we're computing K(X1, X1)
         if X2 is None:
             X2 = X1
@@ -161,12 +127,11 @@ class BaseKernel(ABC):
                 K[i, j] = self._compute_similarity(
                     X1.iloc[i], X2.iloc[j], x2_type=x2_type
                 )
-
         # Center the kernel matrix if requested
         should_center = self.center if center is None else center
         if should_center:
             is_train = x2_type == "train"
-            K = self._center_gram_matrix(K, is_train, support_vectors, K_train)
+            K = self._center_gram_matrix(K, is_train, K_train)
 
         return K
 

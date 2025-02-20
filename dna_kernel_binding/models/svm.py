@@ -172,12 +172,14 @@ class KernelSVM:
             X1=X_train,
             X2=X_test_validation,
             x2_type=decision_type,
-            support_vectors=self.support_vectors_,
             K_train=K_train,
         )
-        K_sv = K_sv.T  # Transpose to match shape of (n_test, n_train)
+        K_sv = K_sv.T[
+            :, self.support_vectors_
+        ]  # Transpose to match shape of (n_test, n_train) and keep only the support vector ones
 
         # Compute decision values using pure kernel expansion
+
         return np.dot(K_sv, self.dual_coef_) + self.bias_
 
     def predict(

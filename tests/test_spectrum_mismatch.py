@@ -158,12 +158,11 @@ def test_cross_gram_matrix_with_mismatches(
         df_test,
         center=True,
         x2_type="test",
-        support_vectors=support_vectors,
         K_train=K_train,
     )
 
     # Check dimensions
-    assert K_test.shape == (2, 2)  # Only using 2 support vectors
+    assert K_test.shape == (4, 2)
     # Check that similar sequences have higher similarity scores
     # AGGT should be more similar to ACGT than ACTA is
     assert K_test[0, 0] > K_test[0, 1]
