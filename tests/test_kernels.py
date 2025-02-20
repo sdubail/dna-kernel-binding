@@ -2,11 +2,13 @@
 Test module for kernel implementations.
 """
 
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-import os
+
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
@@ -87,12 +89,30 @@ def test_gram_matrix_computation(
 
 
 def test_gram_matrix_different_sets(spectrum_kernel: SpectrumKernel) -> None:
-    """Test Gram matrix computation between different sets."""
-    df1 = pd.DataFrame(["ACGT", "AAAA"], columns=["seq"])
-    df2 = pd.DataFrame(["ACTT", "AGGA"], columns=["seq"])
+    """Test Gram matrix computation and centering with support vectors for test data."""
+    # Create training data
+    df_train = pd.DataFrame(["ACGT", "AAAA", "CCCC", "GGGG"], columns=["seq"])
 
-    K = spectrum_kernel.compute_gram_matrix(df1, df2, "test")
-    assert K.shape == (2, 2)
+    # Create test data
+    df_test = pd.DataFrame(["ACTT", "AGGA"], columns=["seq"])
+
+    # Mock support vectors (pretend first and third training examples are support vectors)
+    support_vectors = np.array([True, False, True, False])
+
+    # Compute training gram matrix first
+    K_train = spectrum_kernel.compute_gram_matrix(df_train)
+
+    # Compute test gram matrix with support vectors and centering
+    K_test = spectrum_kernel.compute_gram_matrix(
+        df_train,
+        df_test,
+        center=True,
+        x2_type="test",
+        K_train=K_train,
+    )
+
+    # Check dimensions
+    assert K_test.shape == (4, 2)
 
 
 def test_error_no_name(spectrum_kernel: SpectrumKernel) -> None:
@@ -109,7 +129,6 @@ def test_spectrum_kernel_edge_cases(spectrum_kernel: SpectrumKernel) -> None:
     df_empty = pd.DataFrame(["", ""], columns=["seq"])
     spectrum_kernel.preprocess_data(df_empty)
     assert all(len(kmers) == 0 for kmers in spectrum_kernel.kmer_indices.values())
-
     # Test with sequences shorter than k
     kernel_k3 = SpectrumKernel(k=3)
     df_short = pd.DataFrame(["AC", "GT"], columns=["seq"])
