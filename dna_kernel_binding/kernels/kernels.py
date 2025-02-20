@@ -70,7 +70,13 @@ class BaseKernel(ABC):
             return K_centered
 
         else:
-            # TODO: Check if this is correct
+            # TODO: REPLACE
+            # K_centered = (
+            #     K
+            #     - U_test @ self.K_train_uncentered
+            #     - K @ U_train
+            #     + U_test @ self.K_train_uncentered @ U_train
+            # )
 
             # Here K = K_test_sv
             n_train = K_train.shape[0]
