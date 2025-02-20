@@ -59,7 +59,7 @@ class TestKernelSVM:
         self, linear_separable_data: tuple[np.ndarray, np.ndarray, np.ndarray]
     ) -> None:
         """Test fitting on perfectly separable data."""
-        K, y, _ = linear_separable_data
+        K, y, X = linear_separable_data
 
         svm = KernelSVM(C=1.0)
         svm.fit(K, y)
@@ -70,7 +70,7 @@ class TestKernelSVM:
         assert svm.bias_ is not None
 
         # Verify perfect separation on training data
-        pred = svm.predict(K)
+        pred = svm.predict(svm, X, X, "test", K)
         assert_array_equal(pred, y)
 
     def test_predict_before_fit(

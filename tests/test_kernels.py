@@ -23,7 +23,7 @@ def spectrum_kernel() -> SpectrumKernel:
 def test_sequences() -> pd.DataFrame:
     """Fixture providing a small dataset of DNA sequences for testing."""
     sequences = ["ACGT", "ACGT", "AAAA"]
-    return pd.DataFrame(sequences, columns=["sequence"])
+    return pd.DataFrame(sequences, columns=["seq"])
 
 
 def test_spectrum_kernel_initialization(spectrum_kernel: SpectrumKernel) -> None:
@@ -88,10 +88,10 @@ def test_gram_matrix_computation(
 
 def test_gram_matrix_different_sets(spectrum_kernel: SpectrumKernel) -> None:
     """Test Gram matrix computation between different sets."""
-    df1 = pd.DataFrame(["ACGT", "AAAA"], columns=["sequence"])
-    df2 = pd.DataFrame(["ACTT", "AGGA"], columns=["sequence"])
+    df1 = pd.DataFrame(["ACGT", "AAAA"], columns=["seq"])
+    df2 = pd.DataFrame(["ACTT", "AGGA"], columns=["seq"])
 
-    K = spectrum_kernel.compute_gram_matrix(df1, df2)
+    K = spectrum_kernel.compute_gram_matrix(df1, df2, "test")
     assert K.shape == (2, 2)
 
 
@@ -106,13 +106,13 @@ def test_error_no_name(spectrum_kernel: SpectrumKernel) -> None:
 def test_spectrum_kernel_edge_cases(spectrum_kernel: SpectrumKernel) -> None:
     """Test spectrum kernel with edge cases."""
     # Test with empty sequences
-    df_empty = pd.DataFrame(["", ""], columns=["sequence"])
+    df_empty = pd.DataFrame(["", ""], columns=["seq"])
     spectrum_kernel.preprocess_data(df_empty)
     assert all(len(kmers) == 0 for kmers in spectrum_kernel.kmer_indices.values())
 
     # Test with sequences shorter than k
     kernel_k3 = SpectrumKernel(k=3)
-    df_short = pd.DataFrame(["AC", "GT"], columns=["sequence"])
+    df_short = pd.DataFrame(["AC", "GT"], columns=["seq"])
     kernel_k3.preprocess_data(df_short)
     assert all(len(kmers) == 0 for kmers in kernel_k3.kmer_indices.values())
 

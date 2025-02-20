@@ -129,8 +129,8 @@ class BaseKernel(ABC):
         """
         if not self.is_preprocessed:
             self.preprocess_data(X1)
-            if X2 =='train':
-                self.preprocess_data(X2, X_type=x2_type)
+            # if x2_type == 'train':
+            #     self.preprocess_data(X2, X_type=x2_type)
 
         # make sure to preprocess the test data
         if x2_type == 'test':
@@ -228,7 +228,7 @@ class SpectrumKernel(BaseKernel):
                 self.kmer_test_indices[idx] = self._extract_kmers(seq)
         self.is_preprocessed = True
 
-    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray, x2_type: Literal["train", "test", "validation"]) -> float:
+    def _compute_similarity(self, x1: str | np.ndarray, x2: str | np.ndarray, x2_type: Literal["train", "test", "validation"]="train") -> float:
         """
         Compute the spectrum kernel value between two sequences.
 
