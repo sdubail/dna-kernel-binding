@@ -4,10 +4,12 @@ Follows the representer theorem formulation where the decision function
 is expressed as a linear combination of kernel functions.
 """
 
-from typing import Optional, Literal
+from typing import Literal
+
 import numpy as np
 import pandas as pd
 from cvxopt import matrix, solvers
+
 from dna_kernel_binding.kernels.kernels import BaseKernel
 
 # Configure solver to be less verbose and more precise
@@ -127,7 +129,7 @@ class KernelSVM:
         # Convert labels to {-1, 1}
         y = np.asarray(y)
         y_normalized = np.where(y <= 0, -1, 1)
-    
+
         # Solve the dual optimization problem
         alpha = self._solve_dual_problem(K, y_normalized)
 
@@ -143,12 +145,14 @@ class KernelSVM:
 
         return self
 
-    def decision_function(self,
-                          kernel: BaseKernel,
-                          X_train: pd.DataFrame | list[str],
-                          X_test_validation: pd.DataFrame | list[str],
-                          decision_type: Literal["validation", "test"]="test",
-                          K_train: np.ndarray | None = None) -> np.ndarray:
+    def decision_function(
+        self,
+        kernel: BaseKernel,
+        X_train: pd.DataFrame | list[str],
+        X_test_validation: pd.DataFrame | list[str],
+        decision_type: Literal["validation", "test"] = "test",
+        K_train: np.ndarray | None = None,
+    ) -> np.ndarray:
         """
         Compute decision function values following the representer theorem:
         f(x) = ∑ᵢ αᵢK(xᵢ,x)
@@ -164,18 +168,26 @@ class KernelSVM:
             raise RuntimeError("Model must be fitted before calling decision_function")
 
         # Compute only kernel values for support vectors
-        K_sv = kernel.compute_gram_matrix(X1=X_train, X2=X_test_validation, x2_type=decision_type, support_vectors=self.support_vectors_, K_train=K_train)
+        K_sv = kernel.compute_gram_matrix(
+            X1=X_train,
+            X2=X_test_validation,
+            x2_type=decision_type,
+            support_vectors=self.support_vectors_,
+            K_train=K_train,
+        )
         K_sv = K_sv.T  # Transpose to match shape of (n_test, n_train)
 
         # Compute decision values using pure kernel expansion
         return np.dot(K_sv, self.dual_coef_) + self.bias_
 
-    def predict(self,
-                kernel: BaseKernel,
-                X_train: pd.DataFrame | list[str],
-                X_test: pd.DataFrame | list[str],
-                decision_type: Literal["validation", "test"]="test",
-                K_train: np.ndarray | None = None) -> np.ndarray:
+    def predict(
+        self,
+        kernel: BaseKernel,
+        X_train: pd.DataFrame | list[str],
+        X_test: pd.DataFrame | list[str],
+        decision_type: Literal["validation", "test"] = "test",
+        K_train: np.ndarray | None = None,
+    ) -> np.ndarray:
         """
         Predict class labels for test points.
 
@@ -185,5 +197,7 @@ class KernelSVM:
         Returns:
             Predicted labels (0 or 1)
         """
-        decision = self.decision_function(kernel, X_train, X_test, decision_type, K_train)
+        decision = self.decision_function(
+            kernel, X_train, X_test, decision_type, K_train
+        )
         return np.where(decision <= 0, 0, 1)
