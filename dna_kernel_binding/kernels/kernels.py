@@ -422,7 +422,7 @@ class MismatchSpectrumKernel(BaseKernel):
             X: Input sequences
             is_train: Whether this is training data (X1) or test data (X2)
         """
-        sequences = X.iloc[:, 0].tolist() if isinstance(X, pd.DataFrame) else X
+        sequences = X.loc[:, "seq"].tolist() if isinstance(X, pd.DataFrame) else X
         target_map = (
             self.train_feature_map if X_type == "train" else self.test_feature_map
         )

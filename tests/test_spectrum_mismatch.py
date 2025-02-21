@@ -24,14 +24,14 @@ def test_sequences() -> pd.DataFrame:
         "AGGT",
         "AAAA",
     ]  # Note: first two sequences differ by 1 mismatch
-    return pd.DataFrame(sequences, columns=["sequence"])
+    return pd.DataFrame(sequences, columns=["seq"])
 
 
 @pytest.fixture
 def test_sequences_2() -> pd.DataFrame:
     """Fixture providing a second set of DNA sequences for cross-gram testing."""
     sequences = ["TTTT", "CGCG"]
-    return pd.DataFrame(sequences, columns=["sequence"])
+    return pd.DataFrame(sequences, columns=["seq"])
 
 
 def test_mismatch_kernel_initialization(
@@ -65,7 +65,7 @@ def test_feature_vector_computation(
     mismatch_kernel: MismatchSpectrumKernel, test_sequences: pd.DataFrame
 ) -> None:
     """Test if feature vector computation works correctly."""
-    sequence = test_sequences.iloc[0]["sequence"]  # "ACGT"
+    sequence = test_sequences.iloc[0]["seq"]  # "ACGT"
     features = mismatch_kernel._compute_feature_vector(sequence)
 
     # Verify some properties of the feature vector
@@ -138,12 +138,12 @@ def test_cross_gram_matrix_with_mismatches(
 ) -> None:
     """Test if cross-gram matrix computation works correctly with mismatches."""
     # Create training data with some similar sequences
-    df_train = pd.DataFrame(["ACGT", "ACTT", "CCCC", "GGGG"], columns=["sequence"])
+    df_train = pd.DataFrame(["ACGT", "ACTT", "CCCC", "GGGG"], columns=["seq"])
 
     # Create test data with sequences that have some mismatches with training data
     df_test = pd.DataFrame(
         ["AGGT", "ACTA"],  # First sequence has 1 mismatch with ACGT
-        columns=["sequence"],
+        columns=["seq"],
     )
 
     # Mock support vectors (pretend first and third training examples are support vectors)
@@ -171,7 +171,7 @@ def test_cross_gram_matrix_with_mismatches(
 def test_edge_cases_with_mismatches(mismatch_kernel: MismatchSpectrumKernel) -> None:
     """Test mismatch kernel with edge cases."""
     # Test with empty sequences
-    df_empty = pd.DataFrame(["", ""], columns=["sequence"])
+    df_empty = pd.DataFrame(["", ""], columns=["seq"])
     mismatch_kernel.preprocess_data(df_empty, X_type="train")
     assert all(
         len(features) == 0 for features in mismatch_kernel.train_feature_map.values()
@@ -179,7 +179,7 @@ def test_edge_cases_with_mismatches(mismatch_kernel: MismatchSpectrumKernel) -> 
 
     # Test with sequences shorter than k
     kernel_k3 = MismatchSpectrumKernel(k=3, m=1)
-    df_short = pd.DataFrame(["AC", "GT"], columns=["sequence"])
+    df_short = pd.DataFrame(["AC", "GT"], columns=["seq"])
     kernel_k3.preprocess_data(df_short, X_type="train")
     assert all(len(features) == 0 for features in kernel_k3.train_feature_map.values())
 
